@@ -19,7 +19,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 # Настройка Gemini
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')  # Быстрая и бесплатная модель
+    model = genai.GenerativeModel('gemini-2.0-flash-litle')  # Быстрая и бесплатная модель
 else:
     print("Предупреждение: GEMINI_API_KEY не найден, ИИ-генерация работать не будет")
     model = None
