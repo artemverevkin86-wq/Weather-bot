@@ -2,19 +2,35 @@ name: Discord Weather
 
 on:
   schedule:
+    # Запуск каждый день в 21:00 UTC (это 00:00 МСК, UTC+3)
     - cron: '0 21 * * *'
+  # Возможность запускать вручную через интерфейс GitHub
   workflow_dispatch:
 
 jobs:
-  weather:
+  send-weather:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # 1. Клонируем репозиторий
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # 2. Устанавливаем Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install requests google-generativeai   # <--- ИЗМЕНЕНО
-      - run: python weather_bot.py
+      
+      # 3. Устанавливаем необходимые библиотеки
+      - name: Install dependencies
+        run: |
+          pip install requests
+          pip install google-generativeai
+      
+      # 4. Запускаем бота и передаём секреты как переменные окружения
+      - name: Run weather bot
+        run: python weather_bot.py
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
