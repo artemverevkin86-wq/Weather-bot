@@ -3,6 +3,7 @@ import random
 import json
 import os
 from datetime import datetime, timezone, timedelta
+import google.generativeai as genai
 
 # Московское время (UTC+3)
 MOSCOW_TZ = timezone(timedelta(hours=3))
@@ -11,11 +12,20 @@ MOSCOW_TZ = timezone(timedelta(hours=3))
 HISTORY_FILE = "weather_history.json"
 TIPS_HISTORY_FILE = "tips_history.json"
 
-# Вебхук URL из секретов GitHub
+# Вебхук URL и API ключ из секретов GitHub
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+# Настройка Gemini
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')  # Быстрая и бесплатная модель
+else:
+    print("Предупреждение: GEMINI_API_KEY не найден, ИИ-генерация работать не будет")
+    model = None
 
 # -------------------------------------------------------------------
-# 1. Советы для каждого типа погоды (по 3 штуки)
+# 1. Советы для каждого типа погоды (по 3 штуки) - резервные на случай ошибки ИИ
 # -------------------------------------------------------------------
 TIPS = {
     "Солнечная": [
@@ -50,18 +60,6 @@ TIPS = {
     ]
 }
 
-# -------------------------------------------------------------------
-# 2. Описания погоды (для рамки)
-# -------------------------------------------------------------------
-DESCRIPTIONS = {
-    "Солнечная": "Ясное небо, лёгкий ветер с юго-запада. Зомби сегодня пассивны — солнечный свет замедляет их реакции.",
-    "Дождь": "Моросящий дождь. Земля становится скользкой. Зомби хуже слышат из-за шума капель.",
-    "Туман": "Нулевая видимость. Ты слышишь шаги, но не видишь врага. Осторожно, выживший.",
-    "Гроза": "Небо разрывают молнии. Каждый удар грома может привлечь орду. Ищи укрытие немедленно.",
-    "Аномальная жара": "Зной выше +30. Асфальт плавится, зомби становятся вялыми, но риск теплового удара высок.",
-    "Аномальный холод": "Внезапные заморозки. Дыши через шарф — пар выдаст твоё положение."
-}
-
 # Эмодзи для каждого типа погоды
 EMOJI_MAP = {
     "Солнечная": "☀️",
@@ -73,7 +71,7 @@ EMOJI_MAP = {
 }
 
 # -------------------------------------------------------------------
-# 3. Работа с историей
+# 2. Работа с историей
 # -------------------------------------------------------------------
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -96,7 +94,7 @@ def save_tips_history(history):
         json.dump(history, f)
 
 # -------------------------------------------------------------------
-# 4. Выбор погоды
+# 3. Выбор погоды
 # -------------------------------------------------------------------
 def choose_weather(last_weather):
     chances = {
@@ -119,7 +117,7 @@ def choose_weather(last_weather):
     return random.choices(weathers, weights=weights)[0]
 
 # -------------------------------------------------------------------
-# 5. Выбор совета (без повторов 2 дня подряд)
+# 4. Выбор совета (без повторов 2 дня подряд)
 # -------------------------------------------------------------------
 def get_unique_tip(weather, tips_history):
     """Возвращает совет, который не повторялся вчера для этой погоды"""
@@ -140,7 +138,7 @@ def get_unique_tip(weather, tips_history):
     return random.choice(available_tips)
 
 # -------------------------------------------------------------------
-# 6. Температура с учётом сезона
+# 5. Температура с учётом сезона
 # -------------------------------------------------------------------
 def calculate_temperature(weather):
     now = datetime.now(MOSCOW_TZ)
@@ -184,7 +182,7 @@ def calculate_temperature(weather):
     return temp, humidity, wind_speed, feels_like
 
 # -------------------------------------------------------------------
-# 7. Активность зомби
+# 6. Активность зомби
 # -------------------------------------------------------------------
 def zombie_activity(weather):
     activities = {
@@ -198,10 +196,64 @@ def zombie_activity(weather):
     return activities.get(weather, "средняя")
 
 # -------------------------------------------------------------------
-# 8. Формирование сообщения в рамке (Discord Embed)
+# 7. ГЕНЕРАЦИЯ ОПИСАНИЯ ЧЕРЕЗ ИИ (НОВОЕ!)
+# -------------------------------------------------------------------
+def generate_ai_description(weather, temp, humidity, wind, feels_like, activity):
+    """Генерирует уникальное описание погоды через Google Gemini"""
+    
+    if not model:
+        # Если ИИ не настроен, возвращаем стандартное описание
+        return generate_fallback_description(weather)
+    
+    today = datetime.now(MOSCOW_TZ)
+    date_str = today.strftime("%d.%m.%Y")
+    
+    # Форматируем температуру
+    temp_str = f"+{temp}" if temp > 0 else str(temp)
+    feels_str = f"+{feels_like}" if feels_like > 0 else str(feels_like)
+    
+    # Промпт для ИИ
+    prompt = f"""
+Ты — Зомби-Синоптик, выживший в мире зомби-апокалипсиса. Твоя задача — написать атмосферную, мрачную, но с долей чёрного юмора сводку погоды.
+
+Сегодня {date_str}.
+Погода: {weather}
+Температура: {temp_str}°C (ощущается как {feels_str}°C)
+Влажность: {humidity}%
+Ветер: {wind} м/с
+Активность зомби: {activity}
+
+Напиши короткое описание (2-3 предложения) в стиле постапокалипсиса. Используй образные выражения, упоминай зомби, выживание, опасности. Пиши на русском языке. Не используй markdown и форматирование. Будь краток, но атмосферно!
+"""
+    
+    try:
+        response = model.generate_content(prompt)
+        description = response.text.strip()
+        # Ограничиваем длину до 500 символов
+        if len(description) > 500:
+            description = description[:497] + "..."
+        return description
+    except Exception as e:
+        print(f"Ошибка при генерации через ИИ: {e}")
+        return generate_fallback_description(weather)
+
+def generate_fallback_description(weather):
+    """Резервное описание на случай ошибки ИИ"""
+    fallbacks = {
+        "Солнечная": "Ясное небо, лёгкий ветер с юго-запада. Зомби сегодня пассивны — солнечный свет замедляет их реакции.",
+        "Дождь": "Моросящий дождь. Земля становится скользкой. Зомби хуже слышат из-за шума капель.",
+        "Туман": "Нулевая видимость. Ты слышишь шаги, но не видишь врага. Осторожно, выживший.",
+        "Гроза": "Небо разрывают молнии. Каждый удар грома может привлечь орду. Ищи укрытие немедленно.",
+        "Аномальная жара": "Зной выше +30. Асфальт плавится, зомби становятся вялыми, но риск теплового удара высок.",
+        "Аномальный холод": "Внезапные заморозки. Дыши через шарф — пар выдаст твоё положение."
+    }
+    return fallbacks.get(weather, "Будь готов к любым неожиданностям.")
+
+# -------------------------------------------------------------------
+# 8. Формирование сообщения в рамке (Discord Embed) с ИИ-описанием
 # -------------------------------------------------------------------
 def build_discord_embed():
-    """Создаёт embed (рамку) вместо обычного сообщения"""
+    """Создаёт embed (рамку) с описанием от ИИ"""
     
     # Загружаем историю
     history = load_history()
@@ -223,7 +275,10 @@ def build_discord_embed():
     # Получаем параметры
     temp, humidity, wind, feels = calculate_temperature(today_weather)
     activity = zombie_activity(today_weather)
-    description = DESCRIPTIONS.get(today_weather, "")
+    
+    # ГЕНЕРИРУЕМ ОПИСАНИЕ ЧЕРЕЗ ИИ
+    ai_description = generate_ai_description(today_weather, temp, humidity, wind, feels, activity)
+    
     emoji = EMOJI_MAP.get(today_weather, "🌡️")
     
     # Форматируем температуру с плюсом/минусом
@@ -233,7 +288,7 @@ def build_discord_embed():
     # Создаём Embed (рамку)
     embed = {
         "title": f"{emoji} Погода на сегодня",
-        "description": description,
+        "description": ai_description,  # <--- ЗДЕСЬ ТЕПЕРЬ ИИ-ОПИСАНИЕ
         "color": get_color_for_weather(today_weather),
         "fields": [
             {
@@ -263,7 +318,7 @@ def build_discord_embed():
             }
         ],
         "footer": {
-            "text": f"📅 {datetime.now(MOSCOW_TZ).strftime('%d.%m.%Y')} | Данные от Зомби-Синоптика"
+            "text": f"📅 {datetime.now(MOSCOW_TZ).strftime('%d.%m.%Y')} | Данные от Зомби-Синоптика | 🤖 Описание сгенерировано ИИ"
         }
     }
     
@@ -282,14 +337,13 @@ def get_color_for_weather(weather):
     return colors.get(weather, 0x5865F2)  # Цвет Discord по умолчанию
 
 # -------------------------------------------------------------------
-# 9. Отправка в Discord через вебхук (с рамкой)
+# 9. Отправка в Discord через вебхук
 # -------------------------------------------------------------------
 def send_to_discord(embed):
     if not WEBHOOK_URL:
         print("Ошибка: DISCORD_WEBHOOK_URL не найден!")
         return False
     
-    # Отправляем embed (рамку) без переопределения имени/аватарки
     data = {
         "embeds": [embed]
     }
@@ -306,13 +360,18 @@ def send_to_discord(embed):
 # 10. Главная функция
 # -------------------------------------------------------------------
 def main():
-    print("Запуск бота погоды...")
+    print("Запуск бота погоды с ИИ-генерацией...")
+    
+    if not GEMINI_API_KEY:
+        print("ВНИМАНИЕ: GEMINI_API_KEY не найден. Будет использовано стандартное описание.")
+    
     embed = build_discord_embed()
     success = send_to_discord(embed)
+    
     if success:
         print("Готово! Завтра в 00:00 МСК снова пришлю погоду.")
     else:
-        print("Что-то пошло не так. Проверь WEBHOOK_URL.")
+        print("Что-то пошло не так. Проверь WEBHOOK_URL и GEMINI_API_KEY.")
 
 if __name__ == "__main__":
     main()
