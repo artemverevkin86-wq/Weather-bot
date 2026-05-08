@@ -3,248 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Мир после — погода в городе</title>
+    <title>Мир после — погода</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #0a0a0a;
-            font-family: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
-            color: #ffffff;
-            padding: 20px 16px 40px;
-        }
-
-        .weather-app {
-            max-width: 500px;
-            margin: 0 auto;
-            background: #0f0f0f;
-            border-radius: 48px;
-            padding: 24px 22px 32px;
-            border: 1px solid #2a2a2a;
-        }
-
-        .location-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 32px;
-            color: #bcbcbc;
-            font-size: 14px;
-            border-bottom: 0.5px solid #2c2c2c;
-            padding-bottom: 12px;
-        }
-
-        .city {
-            font-weight: 600;
-            color: #e2e2e2;
-        }
-
-        .date {
-            font-size: 13px;
-        }
-
-        .main-temp-block {
-            text-align: center;
-            margin-bottom: 28px;
-        }
-
-        .big-temp {
-            font-size: 84px;
-            font-weight: 300;
-            letter-spacing: -4px;
-            line-height: 1;
-        }
-
-        .condition {
-            font-size: 22px;
-            font-weight: 400;
-            margin-top: 6px;
-            color: #dddddd;
-        }
-
-        .high-low {
-            font-size: 15px;
-            color: #aaa;
-            margin-top: 10px;
-        }
-
-        .details-row {
-            display: flex;
-            justify-content: space-between;
-            background: #161616;
-            border-radius: 44px;
-            padding: 14px 20px;
-            margin-bottom: 28px;
-        }
-
-        .detail-item {
-            text-align: center;
-            flex: 1;
-        }
-
-        .detail-label {
-            color: #8e8e8e;
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .detail-value {
-            font-weight: 500;
-        }
-
-        .day-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 24px 0 16px;
-        }
-
-        .day-arrow {
-            background: #1c1c1c;
-            border: none;
-            font-size: 26px;
-            padding: 6px 18px;
-            border-radius: 50px;
-            color: white;
-            cursor: pointer;
-            transition: 0.1s linear;
-        }
-
-        .day-arrow:active {
-            background: #333;
-        }
-
-        .selected-date {
-            font-weight: 500;
-            font-size: 18px;
-            background: #1a1a1a;
-            padding: 8px 20px;
-            border-radius: 40px;
-        }
-
-        .raions-title {
-            font-size: 14px;
-            font-weight: 500;
-            margin: 12px 0 12px 0;
-            color: #aaa;
-        }
-
-        .raions-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 28px;
-        }
-
-        .raion-card {
-            background: #161616;
-            border-radius: 28px;
-            padding: 16px 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: 0.1s ease;
-        }
-
-        .raion-card:active {
-            background: #252525;
-        }
-
-        .raion-name {
-            font-weight: 500;
-        }
-
-        .raion-temp {
-            font-size: 22px;
-            font-weight: 500;
-        }
-
-        .raion-icon {
-            font-size: 28px;
-            margin: 0 8px;
-        }
-
-        .raion-detail {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .hourly-section {
-            margin-top: 8px;
-            margin-bottom: 20px;
-        }
-
-        .hourly-title {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 12px;
-            color: #d4a373;
-        }
-
-        .hourly-scroll {
-            overflow-x: auto;
-            white-space: nowrap;
-            display: flex;
-            gap: 20px;
-            padding-bottom: 8px;
-        }
-
-        .hour-card {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            background: #141414;
-            padding: 10px 14px;
-            border-radius: 32px;
-            min-width: 70px;
-        }
-
-        .hour-time {
-            font-size: 13px;
-            color: #bcbcbc;
-        }
-
-        .hour-temp {
-            font-size: 20px;
-            font-weight: 500;
-            margin: 6px 0 2px;
-        }
-
-        .hour-icon {
-            font-size: 20px;
-        }
-
-        .hour-rain {
-            font-size: 11px;
-            color: #70b9ff;
-        }
-
-        .alert-message {
-            background: #1e1a15;
-            border-radius: 60px;
-            padding: 12px 18px;
-            margin: 24px 0 10px;
-            text-align: center;
-            font-size: 14px;
-            color: #ffd966;
-        }
-
-        footer {
-            text-align: center;
-            font-size: 10px;
-            color: #4f4f4f;
-            margin-top: 28px;
-        }
-
-        .hidden {
-            display: none;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; font-family: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif; color: #ffffff; padding: 20px 16px 40px; }
+        .weather-app { max-width: 500px; margin: 0 auto; background: #0f0f0f; border-radius: 48px; padding: 24px 22px 32px; border: 1px solid #2a2a2a; }
+        .location-bar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 32px; color: #bcbcbc; font-size: 14px; border-bottom: 0.5px solid #2c2c2c; padding-bottom: 12px; }
+        .city { font-weight: 600; color: #e2e2e2; }
+        .main-temp-block { text-align: center; margin-bottom: 28px; }
+        .big-temp { font-size: 84px; font-weight: 300; letter-spacing: -4px; line-height: 1; }
+        .condition { font-size: 22px; font-weight: 400; margin-top: 6px; color: #dddddd; }
+        .high-low { font-size: 15px; color: #aaa; margin-top: 10px; }
+        .details-row { display: flex; justify-content: space-between; background: #161616; border-radius: 44px; padding: 14px 20px; margin-bottom: 28px; }
+        .detail-item { text-align: center; flex: 1; }
+        .detail-label { color: #8e8e8e; font-size: 12px; margin-bottom: 4px; }
+        .detail-value { font-weight: 500; }
+        .day-nav { display: flex; justify-content: space-between; align-items: center; margin: 24px 0 16px; }
+        .day-arrow { background: #1c1c1c; border: none; font-size: 26px; padding: 6px 18px; border-radius: 50px; color: white; cursor: pointer; }
+        .day-arrow:active { background: #333; }
+        .selected-date { font-weight: 500; font-size: 18px; background: #1a1a1a; padding: 8px 20px; border-radius: 40px; }
+        .raions-title { font-size: 14px; font-weight: 500; margin: 12px 0 12px 0; color: #aaa; }
+        .raions-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+        .raion-card { background: #161616; border-radius: 28px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.1s ease; }
+        .raion-card:active { background: #252525; }
+        .raion-name { font-weight: 500; }
+        .raion-temp { font-size: 22px; font-weight: 500; }
+        .raion-icon { font-size: 28px; margin: 0 8px; }
+        .raion-detail { display: flex; align-items: center; gap: 12px; }
+        .hourly-section { margin-top: 8px; margin-bottom: 20px; }
+        .hourly-title { font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #d4a373; }
+        .hourly-scroll { overflow-x: auto; white-space: nowrap; display: flex; gap: 20px; padding-bottom: 8px; }
+        .hour-card { display: inline-flex; flex-direction: column; align-items: center; background: #141414; padding: 10px 14px; border-radius: 32px; min-width: 70px; }
+        .hour-time { font-size: 13px; color: #bcbcbc; }
+        .hour-temp { font-size: 20px; font-weight: 500; margin: 6px 0 2px; }
+        .hour-icon { font-size: 20px; }
+        .hour-rain { font-size: 11px; color: #70b9ff; }
+        .alert-message { background: #1e1a15; border-radius: 60px; padding: 12px 18px; margin: 24px 0 10px; text-align: center; font-size: 14px; color: #ffd966; }
+        footer { text-align: center; font-size: 10px; color: #4f4f4f; margin-top: 28px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
