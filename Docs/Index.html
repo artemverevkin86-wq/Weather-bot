@@ -20,14 +20,18 @@
         .detail-value { font-weight: 500; }
         .day-nav { display: flex; justify-content: space-between; align-items: center; margin: 24px 0 16px; }
         .day-arrow { background: #1c1c1c; border: none; font-size: 26px; padding: 6px 18px; border-radius: 50px; color: white; cursor: pointer; }
+        .day-arrow:active { background: #333; }
         .selected-date { font-weight: 500; font-size: 18px; background: #1a1a1a; padding: 8px 20px; border-radius: 40px; }
-        .raions-title, .hourly-title { font-size: 14px; font-weight: 500; margin: 12px 0 12px 0; color: #aaa; }
+        .raions-title { font-size: 14px; font-weight: 500; margin: 12px 0 12px 0; color: #aaa; }
         .raions-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
-        .raion-card { background: #161616; border-radius: 28px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; }
+        .raion-card { background: #161616; border-radius: 28px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.1s ease; }
+        .raion-card:active { background: #252525; }
         .raion-name { font-weight: 500; }
         .raion-temp { font-size: 22px; font-weight: 500; }
         .raion-icon { font-size: 28px; margin: 0 8px; }
         .raion-detail { display: flex; align-items: center; gap: 12px; }
+        .hourly-section { margin-top: 8px; margin-bottom: 20px; }
+        .hourly-title { font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #d4a373; }
         .hourly-scroll { overflow-x: auto; white-space: nowrap; display: flex; gap: 20px; padding-bottom: 8px; }
         .hour-card { display: inline-flex; flex-direction: column; align-items: center; background: #141414; padding: 10px 14px; border-radius: 32px; min-width: 70px; }
         .hour-time { font-size: 13px; color: #bcbcbc; }
@@ -36,6 +40,7 @@
         .hour-rain { font-size: 11px; color: #70b9ff; }
         .alert-message { background: #1e1a15; border-radius: 60px; padding: 12px 18px; margin: 24px 0 10px; text-align: center; font-size: 14px; color: #ffd966; }
         footer { text-align: center; font-size: 10px; color: #4f4f4f; margin-top: 28px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -66,8 +71,10 @@
     <div class="raions-title">ПОГОДА В РАЙОНАХ</div>
     <div class="raions-grid" id="raionsContainer"></div>
 
-    <div class="hourly-title">ПОЧАСОВО</div>
-    <div class="hourly-scroll" id="hourlyContainer"></div>
+    <div id="hourlyBlock" class="hourly-section hidden">
+        <div class="hourly-title" id="hourlyTitle">📅 ПОЧАСОВО</div>
+        <div class="hourly-scroll" id="hourlyContainer"></div>
+    </div>
 
     <div class="alert-message" id="specialAlert"></div>
     <footer>Мир после… сводка каждые 00:00 МСК</footer>
@@ -111,6 +118,27 @@
         return hourly;
     }
 
+    function renderHourlyForRaion(raionName, dayData) {
+        const raionTemp = Math.round(dayData.mainTemp + TEMP_OFFSET[raionName]);
+        const hourly = generateHourlyForecast(raionTemp);
+        const container = document.getElementById("hourlyContainer");
+        container.innerHTML = "";
+        for (let h of hourly) {
+            const card = document.createElement("div");
+            card.className = "hour-card";
+            card.innerHTML = `
+                <div class="hour-time">${h.time}</div>
+                <div class="hour-temp">${h.temp}°</div>
+                <div class="hour-icon">${h.icon}</div>
+                <div class="hour-rain">${h.rain}</div>
+            `;
+            container.appendChild(card);
+        }
+        const titleEl = document.getElementById("hourlyTitle");
+        titleEl.innerHTML = `📅 ПОЧАСОВО (${raionName})`;
+        document.getElementById("hourlyBlock").classList.remove("hidden");
+    }
+
     function renderRaions(dayData) {
         const container = document.getElementById("raionsContainer");
         container.innerHTML = "";
@@ -128,6 +156,9 @@
                     <span class="raion-temp">${raionTemp}°</span>
                 </div>
             `;
+            card.addEventListener("click", () => {
+                renderHourlyForRaion(raion, dayData);
+            });
             container.appendChild(card);
         }
     }
@@ -149,20 +180,7 @@
 
         renderRaions(dayData);
 
-        const hourly = generateHourlyForecast(dayData.mainTemp);
-        const hourlyContainer = document.getElementById("hourlyContainer");
-        hourlyContainer.innerHTML = "";
-        for (let h of hourly) {
-            const card = document.createElement("div");
-            card.className = "hour-card";
-            card.innerHTML = `
-                <div class="hour-time">${h.time}</div>
-                <div class="hour-temp">${h.temp}°</div>
-                <div class="hour-icon">${h.icon}</div>
-                <div class="hour-rain">${h.rain}</div>
-            `;
-            hourlyContainer.appendChild(card);
-        }
+        document.getElementById("hourlyBlock").classList.add("hidden");
 
         document.getElementById("prevDay").disabled = (currentDateIdx === 0);
         document.getElementById("nextDay").disabled = (currentDateIdx === datesList.length - 1);
