@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Мир после — погода</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0a0a;
+      font-family: -apple-system, 'Inter', 'Segoe UI', system-ui, Helvetica, sans-serif;
+      color: #ffffff;
+      padding: 20px 16px 40px;
+    }
+
+    .weather-app {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #0f0f0f;
+      border-radius: 48px;
+      padding: 24px 22px 32px;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.6);
+      border: 1px solid #2a2a2a;
+    }
+
+    .location-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 32px;
+      color: #bcbcbc;
+      font-size: 14px;
+      border-bottom: 0.5px solid #2c2c2c;
+      padding-bottom: 12px;
+    }
+    .city {
+      font-weight: 600;
+      color: #e2e2e2;
+      letter-spacing: 0.5px;
+    }
+    .date {
+      font-size: 13px;
+    }
+
+    .main-temp-block {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .big-temp {
+      font-size: 84px;
+      font-weight: 300;
+      letter-spacing: -4px;
+      line-height: 1;
+    }
+    .condition {
+      font-size: 22px;
+      font-weight: 400;
+      margin-top: 6px;
+      color: #dddddd;
+    }
+    .high-low {
+      font-size: 15px;
+      color: #aaa;
+      margin-top: 10px;
+    }
+
+    .details-row {
+      display: flex;
+      justify-content: space-between;
+      background: #161616;
+      border-radius: 44px;
+      padding: 14px 20px;
+      margin-bottom: 28px;
+      font-size: 15px;
+    }
+    .detail-item {
+      text-align: center;
+      flex: 1;
+    }
+    .detail-label {
+      color: #8e8e8e;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .detail-value {
+      font-weight: 500;
+    }
+
+    .day-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 24px 0 16px;
+    }
+    .day-arrow {
+      background: #1c1c1c;
+      border: none;
+      font-size: 26px;
+      padding: 6px 18px;
+      border-radius: 50px;
+      color: white;
+      cursor: pointer;
+      transition: 0.1s linear;
+    }
+    .day-arrow:active { background: #333; }
+    .selected-date {
+      font-weight: 500;
+      font-size: 18px;
+      background: #1a1a1a;
+      padding: 8px 20px;
+      border-radius: 40px;
+    }
+
+    .hourly-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin: 12px 0 12px 0;
+      color: #aaa;
+      letter-spacing: 0.5px;
+    }
+    .hourly-scroll {
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: thin;
+      padding-bottom: 8px;
+      display: flex;
+      gap: 20px;
+    }
+    .hour-card {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      background: #141414;
+      padding: 10px 14px;
+      border-radius: 32px;
+      min-width: 70px;
+    }
+    .hour-time {
+      font-size: 13px;
+      color: #bcbcbc;
+    }
+    .hour-temp {
+      font-size: 20px;
+      font-weight: 500;
+      margin: 6px 0 2px;
+    }
+    .hour-icon {
+      font-size: 20px;
+    }
+    .hour-rain {
+      font-size: 11px;
+      color: #70b9ff;
+    }
+
+    .alert-message {
+      background: #1e1a15;
+      border-radius: 60px;
+      padding: 12px 18px;
+      margin: 24px 0 10px;
+      text-align: center;
+      font-size: 14px;
+      color: #ffd966;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 10px;
+      color: #4f4f4f;
+      margin-top: 28px;
+    }
+  </style>
+</head>
+<body>
+<div class="weather-app" id="app">
+  <div class="location-bar">
+    <span class="city">🎙️ МИР ПОСЛЕ</span>
+    <span class="date" id="globalDate"></span>
+  </div>
+
+  <div class="main-temp-block">
+    <div class="big-temp" id="mainTemp">--°</div>
+    <div class="condition" id="mainCondition">--</div>
+    <div class="high-low" id="highLow"></div>
+  </div>
+
+  <div class="details-row">
+    <div class="detail-item"><div class="detail-label">ощущается</div><div class="detail-value" id="feelsLike">--°</div></div>
+    <div class="detail-item"><div class="detail-label">ветер</div><div class="detail-value" id="wind">-- м/с</div></div>
+    <div class="detail-item"><div class="detail-label">влажность</div><div class="detail-value" id="humidity">--%</div></div>
+  </div>
+
+  <div class="day-nav">
+    <button class="day-arrow" id="prevDay">←</button>
+    <span class="selected-date" id="selectedDate">--------</span>
+    <button class="day-arrow" id="nextDay">→</button>
+  </div>
+
+  <div class="hourly-title">ПОЧАСОВО</div>
+  <div class="hourly-scroll" id="hourlyContainer"></div>
+
+  <div class="alert-message" id="specialAlert">🌂 Будьте внимательны, выжившие</div>
+  <footer>Мир после… сводка каждые 00:00 МСК</footer>
+</div>
+
+<script>
+  // ------------------- ФУНКЦИЯ ГЕНЕРАЦИИ ПОЧАСОВОГО ПРОГНОЗА ОТ ТЕКУЩЕГО ЧАСА (10 часов) -------------------
+  function generateHourlyForecast() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const hourly = [];
+    for (let i = 0; i < 10; i++) {
+      let hour = (currentHour + i) % 24;
+      let timeLabel = hour.toString().padStart(2, '0') + ":00";
+      // имитация данных — позже заменишь на реальные показатели от бота
+      let temp = Math.floor(Math.random() * (24 - 10 + 1) + 10); 
+      let icon = "☀️";
+      if (temp < 12) icon = "🌧️";
+      else if (temp < 18) icon = "⛅";
+      else icon = "☀️";
+      let rain = Math.floor(Math.random() * 70);
+      hourly.push({
+        time: timeLabel,
+        temp: temp,
+        icon: icon,
+        rain: rain + "%"
+      });
+    }
+    return hourly;
+  }
+
+  // ---------- ТЕСТОВЫЙ ДАТАСЕТ ДНЕЙ (пример) ----------
+  const weatherDays = {
+    "2026-05-08": {
+      dayLabel: "сегодня",
+      mainTemp: 22,
+      condition: "Ясно",
+      feelsLike: 21,
+      wind: 3,
+      humidity: 47,
+      high: 23,
+      low: 8,
+      alert: "🌂 Возьмите зонт! Вечером возможен небольшой дождь."
+    },
+    "2026-05-09": {
+      dayLabel: "завтра",
+      mainTemp: 19,
+      condition: "Небольшой дождь",
+      feelsLike: 18,
+      wind: 4,
+      humidity: 68,
+      high: 20,
+      low: 12,
+      alert: "🌧️ Ожидаются осадки, зонт не помешает."
+    },
+    "2026-05-10": {
+      dayLabel: "послезавтра",
+      mainTemp: 17,
+      condition: "Пасмурно",
+      feelsLike: 16,
+      wind: 5,
+      humidity: 72,
+      high: 18,
+      low: 9,
+      alert: "🧥 Прохладно, одевайтесь теплее."
+    }
+  };
+
+  const datesList = Object.keys(weatherDays);
+  let currentDateIdx = datesList.indexOf("2026-05-08");
+
+  function renderDate() {
+    const currentDateKey = datesList[currentDateIdx];
+    const dayData = weatherDays[currentDateKey];
+    if (!dayData) return;
+    document.getElementById("globalDate").innerText = currentDateKey.split('-').reverse().join('.');
+    document.getElementById("selectedDate").innerHTML = dayData.dayLabel.toUpperCase();
+    document.getElementById("mainTemp").innerHTML = dayData.mainTemp + "°";
+    document.getElementById("mainCondition").innerHTML = dayData.condition;
+    document.getElementById("highLow").innerHTML = `↑${dayData.high}°/ ↓${dayData.low}°`;
+    document.getElementById("feelsLike").innerHTML = dayData.feelsLike + "°";
+    document.getElementById("wind").innerHTML = dayData.wind + " м/с";
+    document.getElementById("humidity").innerHTML = dayData.humidity + "%";
+    document.getElementById("specialAlert").innerHTML = dayData.alert;
+
+    // почасовой прогноз (зависит от текущего времени системы)
+    const hourlyData = generateHourlyForecast();
+    const container = document.getElementById("hourlyContainer");
+    container.innerHTML = "";
+    hourlyData.forEach(h => {
+      const card = document.createElement("div");
+      card.className = "hour-card";
+      card.innerHTML = `
+        <div class="hour-time">${h.time}</div>
+        <div class="hour-temp">${h.temp}°</div>
+        <div class="hour-icon">${h.icon}</div>
+        <div class="hour-rain">${h.rain}</div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  document.getElementById("prevDay").addEventListener("click", () => {
+    if (currentDateIdx > 0) currentDateIdx--;
+    renderDate();
+  });
+  document.getElementById("nextDay").addEventListener("click", () => {
+    if (currentDateIdx < datesList.length-1) currentDateIdx++;
+    renderDate();
+  });
+
+  renderDate();
+</script>
+</body>
+</html>
