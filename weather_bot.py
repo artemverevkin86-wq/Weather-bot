@@ -6,55 +6,21 @@ from datetime import datetime, timezone, timedelta
 
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
-HISTORY_FILE = "weather_history.json"
-TIPS_HISTORY_FILE = "tips_history.json"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 # -------------------------------------------------------------------
-# 1. РАЙОНЫ И ЛОКАЦИИ
-# -------------------------------------------------------------------
-RAIONS = {
-    "Прикубанский": {"types": ["городской", "завод"]},
-    "Нагорный": {"types": ["возвышенность"]},
-    "Крылатское": {"types": ["военный", "кладбище"]},
-    "Черёмушки": {"types": ["городской", "торговля"]},
-    "Солнечный": {"types": ["вода", "больница"]},
-    "Советский": {"types": ["городской", "полиция"]}
-}
-
-WEATHER_TYPES = ["Солнечно", "Дождь", "Туман", "Гроза", "Аномальная жара", "Аномальный холод"]
-WEATHER_EMOJI = {"Солнечно": "☀️", "Дождь": "🌧️", "Туман": "🌫️", "Гроза": "⛈️", "Аномальная жара": "🔥", "Аномальный холод": "❄️"}
-
-TEMP_OFFSET = {"Прикубанский": 0.5, "Нагорный": -2, "Крылатское": -1, "Черёмушки": 0, "Солнечный": 1.5, "Советский": 0}
-
-def get_zombie_activity(weather):
-    activities = {"Солнечно": "низкая", "Дождь": "средняя", "Туман": "высокая", "Гроза": "критическая", "Аномальная жара": "низкая", "Аномальный холод": "низкая"}
-    return activities.get(weather, "средняя")
-
-def calculate_temperature(weather):
-    now = datetime.now(MOSCOW_TZ)
-    month = now.month
-    if 3 <= month <= 5:
-        ranges = {"Солнечно": (15,25), "Дождь": (8,15), "Туман": (5,12), "Гроза": (12,20), "Аномальная жара": (25,35), "Аномальный холод": (-5,8)}
-    elif 6 <= month <= 8:
-        ranges = {"Солнечно": (22,32), "Дождь": (15,22), "Туман": (12,20), "Гроза": (18,28), "Аномальная жара": (32,42), "Аномальный холод": (5,15)}
-    else:
-        ranges = {"Солнечно": (0,10), "Дождь": (-3,5), "Туман": (-5,3), "Гроза": (-2,6), "Аномальная жара": (10,18), "Аномальный холод": (-20,-5)}
-    return random.randint(*ranges.get(weather, (5,15)))
-
-# -------------------------------------------------------------------
-# 2. КОРОТКИЕ ВСТУПЛЕНИЯ (БЕЗ ПОГОДЫ)
+# 1. КОРОТКИЕ ВСТУПЛЕНИЯ
 # -------------------------------------------------------------------
 INTROS = [
-    "🎙️ **«Мир после» — дневной эфир**\n\nСнова в эфире «Мир после». Расскажем, что происходит в городе.",
-    "🎙️ **«Мир после» — дневной эфир**\n\nПриветствуем всех, кто ещё держится. Короткий выпуск новостей.",
-    "🎙️ **«Мир после» — дневной эфир**\n\nВнимание, выжившие! У нас есть важная информация о ситуации в городе.",
-    "🎙️ **«Мир после» — дневной эфир**\n\nО, ты ещё жив? Отлично. Тогда слушай сюда.",
-    "🎙️ **«Мир после» — дневной эфир**\n\n«Мир после» на связи. Слушайте и выживайте."
+    "Снова в эфире «Мир после». Расскажем, что происходит в городе.",
+    "Приветствуем всех, кто ещё держится. Короткий выпуск новостей.",
+    "Внимание, выжившие! У нас есть важная информация о ситуации в городе.",
+    "О, ты ещё жив? Отлично. Тогда слушай сюда.",
+    "«Мир после» на связи. Слушайте и выживайте."
 ]
 
 # -------------------------------------------------------------------
-# 3. СОБЫТИЯ (15 вариантов)
+# 2. СОБЫТИЯ (15 вариантов)
 # -------------------------------------------------------------------
 EVENTS = [
     ("Крылатское", "На военном аэродроме замечено движение. Рекомендуем обходить авиационное училище стороной."),
@@ -75,7 +41,7 @@ EVENTS = [
 ]
 
 # -------------------------------------------------------------------
-# 4. ОПАСНЫЕ ЗОНЫ
+# 3. ОПАСНЫЕ ЗОНЫ (по погоде + типу локации)
 # -------------------------------------------------------------------
 DANGERS = [
     ("Туман", "кладбище", "В тумане у кладбища зомби незаметны до последнего момента."),
@@ -87,7 +53,7 @@ DANGERS = [
 ]
 
 # -------------------------------------------------------------------
-# 5. СОВЕТЫ
+# 4. СОВЕТЫ
 # -------------------------------------------------------------------
 TIPS = [
     "Не ходи один. Серьёзно, это не геройство, это глупость.",
@@ -99,90 +65,135 @@ TIPS = [
 ]
 
 # -------------------------------------------------------------------
-# 6. ГЕНЕРАЦИЯ ПОГОДЫ ДЛЯ САЙТА
+# 5. СОХРАНЕНИЕ ПОГОДЫ НА САЙТ (docs/data/weather.json)
 # -------------------------------------------------------------------
-def generate_weather_for_site():
-    """Генерирует погоду для всех районов и сохраняет в словарь"""
-    site_weather = {
-        "date": datetime.now(MOSCOW_TZ).strftime("%Y-%m-%d"),
-        "raions": {},
-        "weatherType": "",
-        "mainTemp": 0
+def save_weather_json():
+    """Генерирует и сохраняет погоду для сайта"""
+    # Простая генерация погоды для примера
+    weather_types = ["Солнечно", "Дождь", "Туман", "Гроза", "Аномальная жара", "Аномальный холод"]
+    main_weather = random.choice(weather_types)
+    
+    # Случайная температура
+    if main_weather == "Солнечно":
+        main_temp = random.randint(18, 28)
+    elif main_weather == "Дождь":
+        main_temp = random.randint(8, 16)
+    elif main_weather == "Туман":
+        main_temp = random.randint(4, 12)
+    elif main_weather == "Гроза":
+        main_temp = random.randint(12, 20)
+    elif main_weather == "Аномальная жара":
+        main_temp = random.randint(30, 38)
+    else:  # Холод
+        main_temp = random.randint(-10, 5)
+    
+    # Поправки для районов
+    temp_offsets = {
+        "Прикубанский": 0,
+        "Нагорный": -2,
+        "Крылатское": -1,
+        "Черёмушки": 0,
+        "Солнечный": 2,
+        "Советский": 0
     }
     
-    # Выбираем главную погоду для города
-    main_weather = random.choice(WEATHER_TYPES)
-    main_temp = calculate_temperature(main_weather)
-    site_weather["weatherType"] = main_weather
-    site_weather["mainTemp"] = main_temp
+    weather_data = {
+        "date": datetime.now(MOSCOW_TZ).strftime("%Y-%m-%d"),
+        "mainTemp": main_temp,
+        "weatherType": main_weather,
+        "raions": {}
+    }
     
-    # Для каждого района считаем температуру и активность
-    for raion in RAIONS.keys():
-        offset = TEMP_OFFSET.get(raion, 0)
-        raion_temp = max(0, min(35, main_temp + offset))  # ограничиваем от 0 до 35
-        site_weather["raions"][raion] = {
+    for raion, offset in temp_offsets.items():
+        raion_temp = main_temp + offset
+        weather_data["raions"][raion] = {
             "temp": raion_temp,
-            "weather": main_weather,
-            "activity": get_zombie_activity(main_weather)
+            "weather": main_weather
         }
     
-    return site_weather
-
-def save_weather_json():
-    """Сохраняет погоду в JSON-файл для сайта"""
-    weather_data = generate_weather_for_site()
-    
-    # Создаём папку docs/data если её нет
+    # Создаём папку
     os.makedirs("docs/data", exist_ok=True)
     
-    # Сохраняем в файл
+    # Сохраняем
     with open("docs/data/weather.json", "w", encoding="utf-8") as f:
         json.dump(weather_data, f, ensure_ascii=False, indent=2)
     
     print("✅ Погода сохранена в docs/data/weather.json")
 
 # -------------------------------------------------------------------
-# 7. ОТПРАВКА СООБЩЕНИЯ В DISCORD
+# 6. ФОРМИРОВАНИЕ EMBED ДЛЯ DISCORD
 # -------------------------------------------------------------------
-def build_discord_message():
+def build_discord_embed():
+    now = datetime.now(MOSCOW_TZ)
+    date_str = now.strftime("%d.%m.%Y")
+    
+    # Выбираем случайное вступление
     intro = random.choice(INTROS)
-    message = intro + "\n\n"
+    
+    # Собираем поля для embed
+    fields = []
     
     # Событие (30% шанс)
     if random.random() < 0.3:
         raion, text = random.choice(EVENTS)
-        message += f"⚠️ **Событие в районе {raion}:**\n{text}\n\n"
+        fields.append({
+            "name": "📢 ПРОИСШЕСТВИЕ В ГОРОДЕ",
+            "value": f"**{raion}**\n{text}",
+            "inline": False
+        })
     
-    # Опасные зоны
-    dangers_for_day = []
-    weather = random.choice(WEATHER_TYPES)
-    danger_trigger = random.choice([True, False])
-    if danger_trigger:
-        for danger in DANGERS:
-            if danger[0] == weather:
-                dangers_for_day.append(f"- {danger[2]}")
-        if dangers_for_day:
-            message += "⚠️ **Опасные зоны сегодня:**\n" + "\n".join(dangers_for_day[:2]) + "\n\n"
+    # Опасные зоны (на основе случайной погоды)
+    weather = random.choice(["Солнечно", "Дождь", "Туман", "Гроза", "Аномальная жара", "Аномальный холод"])
+    dangers_list = []
+    for danger in DANGERS:
+        if danger[0] == weather:
+            dangers_list.append(f"• {danger[2]}")
+    
+    if dangers_list:
+        fields.append({
+            "name": "⚠️ ОПАСНЫЕ ЗОНЫ",
+            "value": "\n".join(dangers_list[:2]),
+            "inline": False
+        })
     
     # Совет
-    message += f"💡 **Совет выжившему:** {random.choice(TIPS)}\n\n"
+    tip = random.choice(TIPS)
+    fields.append({
+        "name": "💡 СОВЕТ ВЫЖИВШЕМУ",
+        "value": tip,
+        "inline": False
+    })
     
-    # Ссылка на сайт
-    message += "🌐 **Подробная погода по районам и почасовой прогноз на сайте:**\n"
-    message += "https://artemverevkin86-wq.github.io/Weather-website/\n\n"
+    # Ссылка на сайт гиперссылкой
+    fields.append({
+        "name": "🌐 ПОДРОБНАЯ ПОГОДА",
+        "value": "[**сайт**](https://artemverevkin86-wq.github.io/Weather-website/) — почасовая погода по районам, события и прогноз.",
+        "inline": False
+    })
     
-    message += "✌️ Мир после… мы ещё живы."
+    # Собираем embed
+    embed = {
+        "title": f"🎙️ «Мир после» — {date_str}",
+        "description": intro,
+        "color": 0x5865F2,
+        "fields": fields,
+        "footer": {
+            "text": "Мир после… мы ещё живы."
+        }
+    }
     
-    return message
+    return embed
 
-def send_to_discord(message):
+def send_to_discord(embed):
     if not WEBHOOK_URL:
         print("Ошибка: DISCORD_WEBHOOK_URL не найден!")
         return False
     
-    data = {"content": message}
-    response = requests.post(WEBHOOK_URL, json=data)
+    data = {
+        "embeds": [embed]
+    }
     
+    response = requests.post(WEBHOOK_URL, json=data)
     if response.status_code == 204:
         print("✅ Сообщение отправлено в Discord!")
         return True
@@ -191,7 +202,7 @@ def send_to_discord(message):
         return False
 
 # -------------------------------------------------------------------
-# 8. ГЛАВНАЯ ФУНКЦИЯ
+# 7. ГЛАВНАЯ ФУНКЦИЯ
 # -------------------------------------------------------------------
 def main():
     print("🚀 Запуск бота «Мир после»...")
@@ -199,9 +210,9 @@ def main():
     # Сохраняем погоду для сайта
     save_weather_json()
     
-    # Отправляем сообщение
-    message = build_discord_message()
-    success = send_to_discord(message)
+    # Формируем и отправляем embed
+    embed = build_discord_embed()
+    success = send_to_discord(embed)
     
     if success:
         print("✅ Готово!")
