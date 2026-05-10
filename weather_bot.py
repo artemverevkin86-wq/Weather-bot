@@ -2,11 +2,13 @@ import requests
 import random
 import json
 import os
+import base64
 from datetime import datetime, timezone, timedelta
 
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+PAT_TOKEN = os.environ.get("PAT_TOKEN")
 
 # -------------------------------------------------------------------
 # 1. КОРОТКИЕ ВСТУПЛЕНИЯ
@@ -16,11 +18,12 @@ INTROS = [
     "Приветствуем всех, кто ещё держится. Короткий выпуск новостей.",
     "Внимание, выжившие! У нас есть важная информация о ситуации в городе.",
     "О, ты ещё жив? Отлично. Тогда слушай сюда.",
-    "«Мир после» на связи. Слушайте и выживайте."
+    "«Мир после» на связи. Слушайте и выживайте.",
+    "Это «Мир после». Говорим о том, что важно. Остальное — сами знаете."
 ]
 
 # -------------------------------------------------------------------
-# 2. СОБЫТИЯ (15 вариантов)
+# 2. СОБЫТИЯ (15 штук)
 # -------------------------------------------------------------------
 EVENTS = [
     ("Крылатское", "На военном аэродроме замечено движение. Рекомендуем обходить авиационное училище стороной."),
@@ -41,15 +44,15 @@ EVENTS = [
 ]
 
 # -------------------------------------------------------------------
-# 3. ОПАСНЫЕ ЗОНЫ (по погоде + типу локации)
+# 3. ОПАСНЫЕ ЗОНЫ (по погоде + типу)
 # -------------------------------------------------------------------
 DANGERS = [
     ("Туман", "кладбище", "В тумане у кладбища зомби незаметны до последнего момента."),
     ("Туман", "больница", "Туман у больницы — ты не увидишь их, пока не станет слишком поздно."),
     ("Гроза", "вода", "У воды в грозу ты становишься живой мишенью."),
     ("Гроза", "военный", "Гроза на военном аэродроме — молнии привлекают орды."),
-    ("Аномальная жара", "завод", "В жару заводы взрываются от искры."),
-    ("Аномальный холод", "вода", "У воды в холод лёд может не выдержать.")
+    ("Аномальная жара", "завод", "В жару заводы взрываются от искры. Держись подальше."),
+    ("Аномальный холод", "вода", "У воды в холод лёд может не выдержать. И ты тоже.")
 ]
 
 # -------------------------------------------------------------------
@@ -61,34 +64,31 @@ TIPS = [
     "Пей больше воды. Обезвоживание — тихий убийца.",
     "Не стой на месте долго. Движение — жизнь.",
     "Проверь своё убежище на наличие слабых мест.",
-    "Если сомневаешься — не лезь. Жадность убивает."
+    "Если сомневаешься — не лезь. Жадность убивает.",
+    "Спать восемь часов — это не слабость, это стратегия.",
+    "Держи оружие рядом. Даже когда кажется, что вокруг тихо."
 ]
 
 # -------------------------------------------------------------------
-# 5. СОХРАНЕНИЕ ПОГОДЫ НА САЙТ (docs/data/weather.json)
+# 5. ГЕНЕРАЦИЯ ПОГОДЫ ДЛЯ САЙТА
 # -------------------------------------------------------------------
-def save_weather_json():
-    """Генерирует и сохраняет погоду для сайта"""
-    # Простая генерация погоды для примера
+def generate_weather_data():
     weather_types = ["Солнечно", "Дождь", "Туман", "Гроза", "Аномальная жара", "Аномальный холод"]
     main_weather = random.choice(weather_types)
     
-    # Случайная температура
-    if main_weather == "Солнечно":
-        main_temp = random.randint(18, 28)
-    elif main_weather == "Дождь":
-        main_temp = random.randint(8, 16)
-    elif main_weather == "Туман":
-        main_temp = random.randint(4, 12)
-    elif main_weather == "Гроза":
-        main_temp = random.randint(12, 20)
-    elif main_weather == "Аномальная жара":
-        main_temp = random.randint(30, 38)
-    else:  # Холод
-        main_temp = random.randint(-10, 5)
+    # Температура по погоде
+    temp_ranges = {
+        "Солнечно": (18, 28),
+        "Дождь": (8, 16),
+        "Туман": (4, 12),
+        "Гроза": (12, 20),
+        "Аномальная жара": (30, 38),
+        "Аномальный холод": (-10, 5)
+    }
+    main_temp = random.randint(*temp_ranges[main_weather])
     
     # Поправки для районов
-    temp_offsets = {
+    offsets = {
         "Прикубанский": 0,
         "Нагорный": -2,
         "Крылатское": -1,
@@ -104,33 +104,64 @@ def save_weather_json():
         "raions": {}
     }
     
-    for raion, offset in temp_offsets.items():
-        raion_temp = main_temp + offset
+    for raion, offset in offsets.items():
         weather_data["raions"][raion] = {
-            "temp": raion_temp,
+            "temp": main_temp + offset,
             "weather": main_weather
         }
     
-    # Создаём папку
-    os.makedirs("docs/data", exist_ok=True)
+    return weather_data
+
+def save_weather_to_site_repo(weather_data):
+    """Сохраняет weather.json в репозиторий Weather-website через GitHub API"""
+    if not PAT_TOKEN:
+        print("❌ PAT_TOKEN не найден! Добавь секрет в репозиторий бота.")
+        return False
     
-    # Сохраняем
-    with open("docs/data/weather.json", "w", encoding="utf-8") as f:
-        json.dump(weather_data, f, ensure_ascii=False, indent=2)
+    repo_owner = "artemverevkin86-wq"
+    repo_name = "Weather-website"
+    file_path = "docs/data/weather.json"
     
-    print("✅ Погода сохранена в docs/data/weather.json")
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{file_path}"
+    
+    # Кодируем JSON в base64
+    json_str = json.dumps(weather_data, ensure_ascii=False, indent=2)
+    json_base64 = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+    
+    headers = {"Authorization": f"token {PAT_TOKEN}"}
+    
+    # Пробуем получить текущий файл (чтобы узнать sha)
+    response = requests.get(url, headers=headers)
+    sha = response.json().get("sha") if response.status_code == 200 else None
+    
+    # Готовим коммит
+    commit_data = {
+        "message": f"Погода от {weather_data['date']}",
+        "content": json_base64,
+        "branch": "main"
+    }
+    if sha:
+        commit_data["sha"] = sha
+    
+    # Отправляем
+    put_response = requests.put(url, headers=headers, json=commit_data)
+    
+    if put_response.status_code in [200, 201]:
+        print("✅ JSON сохранён в Weather-website!")
+        return True
+    else:
+        print(f"❌ Ошибка API GitHub: {put_response.status_code}")
+        print(put_response.text)
+        return False
 
 # -------------------------------------------------------------------
-# 6. ФОРМИРОВАНИЕ EMBED ДЛЯ DISCORD
+# 6. ОТПРАВКА EMBED В DISCORD
 # -------------------------------------------------------------------
 def build_discord_embed():
     now = datetime.now(MOSCOW_TZ)
     date_str = now.strftime("%d.%m.%Y")
     
-    # Выбираем случайное вступление
     intro = random.choice(INTROS)
-    
-    # Собираем поля для embed
     fields = []
     
     # Событие (30% шанс)
@@ -142,13 +173,9 @@ def build_discord_embed():
             "inline": False
         })
     
-    # Опасные зоны (на основе случайной погоды)
-    weather = random.choice(["Солнечно", "Дождь", "Туман", "Гроза", "Аномальная жара", "Аномальный холод"])
-    dangers_list = []
-    for danger in DANGERS:
-        if danger[0] == weather:
-            dangers_list.append(f"• {danger[2]}")
-    
+    # Опасные зоны (имитация погоды)
+    weather_for_danger = random.choice(["Солнечно", "Дождь", "Туман", "Гроза"])
+    dangers_list = [d[2] for d in DANGERS if d[0] == weather_for_danger]
     if dangers_list:
         fields.append({
             "name": "⚠️ ОПАСНЫЕ ЗОНЫ",
@@ -157,48 +184,39 @@ def build_discord_embed():
         })
     
     # Совет
-    tip = random.choice(TIPS)
     fields.append({
         "name": "💡 СОВЕТ ВЫЖИВШЕМУ",
-        "value": tip,
+        "value": random.choice(TIPS),
         "inline": False
     })
     
-    # Ссылка на сайт гиперссылкой
+    # Ссылка на сайт (гиперссылка)
     fields.append({
         "name": "🌐 ПОДРОБНАЯ ПОГОДА",
-        "value": "[**сайт**](https://artemverevkin86-wq.github.io/Weather-website/) — почасовая погода по районам, события и прогноз.",
+        "value": "[**сайт**](https://artemverevkin86-wq.github.io/Weather-website/) — почасовой прогноз по районам, события и карта опасностей.",
         "inline": False
     })
     
-    # Собираем embed
-    embed = {
+    return {
         "title": f"🎙️ «Мир после» — {date_str}",
         "description": intro,
         "color": 0x5865F2,
         "fields": fields,
-        "footer": {
-            "text": "Мир после… мы ещё живы."
-        }
+        "footer": {"text": "Мир после… мы ещё живы. Берегите себя."}
     }
-    
-    return embed
 
 def send_to_discord(embed):
     if not WEBHOOK_URL:
-        print("Ошибка: DISCORD_WEBHOOK_URL не найден!")
+        print("❌ DISCORD_WEBHOOK_URL не найден!")
         return False
     
-    data = {
-        "embeds": [embed]
-    }
+    response = requests.post(WEBHOOK_URL, json={"embeds": [embed]})
     
-    response = requests.post(WEBHOOK_URL, json=data)
     if response.status_code == 204:
         print("✅ Сообщение отправлено в Discord!")
         return True
     else:
-        print(f"❌ Ошибка: {response.status_code}")
+        print(f"❌ Ошибка Discord: {response.status_code}")
         return False
 
 # -------------------------------------------------------------------
@@ -207,17 +225,17 @@ def send_to_discord(embed):
 def main():
     print("🚀 Запуск бота «Мир после»...")
     
-    # Сохраняем погоду для сайта
-    save_weather_json()
+    # 1. Генерируем погоду для сайта
+    weather_data = generate_weather_data()
     
-    # Формируем и отправляем embed
+    # 2. Отправляем JSON в репозиторий сайта
+    save_weather_to_site_repo(weather_data)
+    
+    # 3. Отправляем сообщение в Discord
     embed = build_discord_embed()
-    success = send_to_discord(embed)
+    send_to_discord(embed)
     
-    if success:
-        print("✅ Готово!")
-    else:
-        print("❌ Ошибка при отправке")
+    print("✅ Готово!")
 
 if __name__ == "__main__":
     main()
