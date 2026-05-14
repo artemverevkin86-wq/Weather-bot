@@ -77,10 +77,15 @@ def build_discord_embed():
                 "name": "💡 Совет дня",
                 "value": f"*{tip}*",
                 "inline": False
+            },
+            {
+                "name": " ",
+                "value": "Всё о погоде только для живых здесь >>> [сайт](https://artemverevkin86-wq.github.io/Weather-website/)",
+                "inline": False
             }
         ],
         "footer": {
-            "text": "Всё о погоде только для живых здесь >>> [сайт](https://artemverevkin86-wq.github.io/Weather-website/)"
+            "text": "Мы всё ещё живы... а вы?"
         }
     }
     return embed
